@@ -1,0 +1,13 @@
+package item
+
+templ Item(image, title, description, brand, color string) {
+  <div style="display: inline-block; border: thin solid black; margin: 5px; padding: 5px; word-wrap: break-word">
+    if image != "" {
+	  <img src={ image } width="150px"></img>
+    }
+    <p style="width: 150px; word-wrap: break-word;">{ title }</p>
+    <p style="width: 150px; word-wrap: break-word;">{ description }</p>
+    <p style="width: 150px; word-wrap: break-word;">{ brand }</p>
+    <p style="width: 150px; word-wrap: break-word;">{ color }</p>
+  </div>
+}
