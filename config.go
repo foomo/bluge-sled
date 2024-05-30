@@ -29,12 +29,13 @@ func NewDefaultIndexConfig(name, idField string, inMemory bool) IndexConfig {
 				Tokenizer: analyzer.LetterTokenizer,
 				TokenFilters: []analyzer.TokenFilter{
 					analyzer.LowercaseFilter,
-					analyzer.EnglishStemFilter,
-					analyzer.EnglishStopWordFilter,
+					analyzer.StemFilter,
+					analyzer.StopWordFilter,
 					analyzer.UniqueFilter,
 					analyzer.LengthFilter,
 				},
 				Options: analyzer.Options{
+					Language:        analyzer.English,
 					LengthFilterMin: 3,
 					LengthFilterMax: 15,
 				},

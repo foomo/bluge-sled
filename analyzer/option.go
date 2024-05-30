@@ -93,9 +93,9 @@ func UseLengthFilter(min, max int) Option {
 	}
 }
 
-func UseSynonymFilter(mapping map[string][]string) Option {
+func UseSynonymFilter(items [][]string) Option {
 	return func(a *analysis.Analyzer) error {
-		a.TokenFilters = append(a.TokenFilters, filter.NewSynonymFilter(mapping))
+		a.TokenFilters = append(a.TokenFilters, filter.NewSynonymFilter(items))
 		return nil
 	}
 }

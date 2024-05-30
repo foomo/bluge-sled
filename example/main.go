@@ -91,7 +91,7 @@ func loadIndex(dataPath string, ic sled.IndexConfig, reload bool) (*sled.Index, 
 		if err := json.NewDecoder(f).Decode(&data); err != nil {
 			return nil, err
 		}
-		if err := bi.BulkInsert(data); err != nil {
+		if err := bi.BatchInsert(data); err != nil {
 			return nil, err
 		}
 	}

@@ -1,11 +1,13 @@
 package analyzer
 
 import (
+	"log/slog"
 	"unicode"
 
 	"github.com/blugelabs/bluge/analysis"
 	"github.com/blugelabs/bluge/analysis/lang/de"
 	"github.com/blugelabs/bluge/analysis/lang/en"
+	"github.com/blugelabs/bluge/analysis/lang/fr"
 	"github.com/blugelabs/bluge/analysis/token"
 	"github.com/blugelabs/bluge/analysis/tokenizer"
 	"github.com/foomo/bluge-sled/filter"
@@ -24,23 +26,29 @@ const (
 type TokenFilter string
 
 const (
-	LowercaseFilter       TokenFilter = "lowercase"
-	CustomCompoundFilter  TokenFilter = "compound_custom"
-	GermanCompoundFilter  TokenFilter = "compound_de"
-	GermanStemFilter      TokenFilter = "stem_de"
-	EnglishStemFilter     TokenFilter = "stem_en"
-	GermanStopWordFilter  TokenFilter = "stop_word_de"
-	EnglishStopWordFilter TokenFilter = "stop_word_en"
-	UniqueFilter          TokenFilter = "unique"
-	LengthFilter          TokenFilter = "length"
-	SynonymFilter         TokenFilter = "synonym"
+	LowercaseFilter TokenFilter = "lowercase"
+	CompoundFilter  TokenFilter = "compound"
+	StemFilter      TokenFilter = "stem"
+	StopWordFilter  TokenFilter = "stop_word"
+	UniqueFilter    TokenFilter = "unique"
+	LengthFilter    TokenFilter = "length"
+	SynonymFilter   TokenFilter = "synonym"
+)
+
+type Language string
+
+const (
+	English Language = "en"
+	German  Language = "de"
+	French  Language = "fr"
 )
 
 type Options struct {
-	CompoundFilterDictionary []string            `json:"compound_filter_dictionary,omitempty"` // set of words for the custom compound token filter
-	LengthFilterMin          int                 `json:"length_filter_min,omitempty"`          // minumum length for the length token filter
-	LengthFilterMax          int                 `json:"length_filter_max,omitempty"`          // maximum length for the length token filter
-	SynonymFilterMapping     map[string][]string `json:"synonym_filter_mapping,omitempty"`     // word/sentence mapping for synonym token filter
+	CompoundFilterDictionary []string   `json:"compound_filter_dictionary,omitempty"` // set of words for the custom compound token filter
+	LengthFilterMin          int        `json:"length_filter_min,omitempty"`          // minumum length for the length token filter
+	LengthFilterMax          int        `json:"length_filter_max,omitempty"`          // maximum length for the length token filter
+	SynonymFilterMapping     [][]string `json:"synonym_filter_mapping,omitempty"`     // word/sentence mapping for synonym token filter
+	Language                 Language   `json:"language,omitempty"`
 }
 
 type Config struct {
@@ -67,22 +75,25 @@ func (ac Config) GetAnalyzer() *analysis.Analyzer {
 		switch tf {
 		case LowercaseFilter:
 			a.TokenFilters = append(a.TokenFilters, token.NewLowerCaseFilter())
-		case CustomCompoundFilter:
-			if len(ac.Options.CompoundFilterDictionary) == 0 {
-				continue
+		case CompoundFilter:
+			if len(ac.Options.CompoundFilterDictionary) > 0 {
+				// use custom dictionary for compounder
+				a.TokenFilters = append(a.TokenFilters, filter.NewCompoundFilter(
+					ac.Options.CompoundFilterDictionary))
+			} else {
+				// otherwise use a compound filter by language
+				f := newCompoundFilter(ac.Options.Language)
+				if f != nil {
+					a.TokenFilters = append(a.TokenFilters, f)
+				}
 			}
-			a.TokenFilters = append(a.TokenFilters, filter.NewCompoundFilter(
-				ac.Options.CompoundFilterDictionary))
-		case GermanCompoundFilter:
-			a.TokenFilters = append(a.TokenFilters, filterde.NewCompoundFilter())
-		case GermanStemFilter:
-			a.TokenFilters = append(a.TokenFilters, de.LightStemmerFilter())
-		case EnglishStemFilter:
-			a.TokenFilters = append(a.TokenFilters, en.StemmerFilter())
-		case GermanStopWordFilter:
-			a.TokenFilters = append(a.TokenFilters, de.StopWordsFilter())
-		case EnglishStopWordFilter:
-			a.TokenFilters = append(a.TokenFilters, en.StopWordsFilter())
+		case StemFilter:
+			f := newStemFilter(ac.Options.Language)
+			if f != nil {
+				a.TokenFilters = append(a.TokenFilters, f)
+			}
+		case StopWordFilter:
+			a.TokenFilters = append(a.TokenFilters, newStopWordFilter(ac.Options.Language))
 		case UniqueFilter:
 			a.TokenFilters = append(a.TokenFilters, token.NewUniqueTermFilter())
 		case LengthFilter:
@@ -100,4 +111,42 @@ func (ac Config) GetAnalyzer() *analysis.Analyzer {
 		}
 	}
 	return &a
+}
+
+func newStopWordFilter(l Language) analysis.TokenFilter {
+	switch l {
+	case German:
+		return de.StopWordsFilter()
+	case French:
+		return fr.StopWordsFilter()
+	default:
+		return en.StopWordsFilter()
+	}
+}
+
+func newStemFilter(l Language) analysis.TokenFilter {
+	var lang string
+	switch l {
+	case German:
+		lang = "german"
+	case French:
+		lang = "french"
+	default:
+		lang = "english"
+	}
+	f, err := filter.NewSnowballStemmer(lang)
+	if err != nil {
+		slog.Warn("error creating snowball stemmer filter", err)
+		return nil
+	}
+	return f
+}
+
+func newCompoundFilter(l Language) analysis.TokenFilter {
+	switch l {
+	case German:
+		return filterde.NewCompoundFilter()
+	default:
+		return nil
+	}
 }

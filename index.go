@@ -28,7 +28,7 @@ func NewIndex(ic IndexConfig) (*Index, error) {
 	return &Index{ic, shards}, nil
 }
 
-func (i Index) BulkInsert(data []map[string]any) error {
+func (i Index) BatchInsert(data []map[string]any) error {
 	start := time.Now()
 	defer func() {
 		slog.Debug("bulk insert complete", "duration", time.Since(start))
@@ -49,6 +49,48 @@ func (i Index) BulkInsert(data []map[string]any) error {
 		})
 	}
 	return eg.Wait()
+}
+
+func (i Index) Update(datum map[string]any) error {
+	shardId := getShardId(i.ic.ShardNum, fmt.Sprint(datum[i.ic.IdField]))
+	return i.shards[shardId].Update(fmt.Sprint(datum[i.ic.IdField]), datum)
+}
+
+func (i Index) Upsert(data []map[string]any) error {
+	// note: not truly an upsert
+	var nonExisting []map[string]any
+	for _, datum := range data {
+		if err := i.Update(datum); err != nil {
+			// TODO check for specific "does not exist" error message
+			nonExisting = append(nonExisting, datum)
+		}
+	}
+	return i.BatchInsert(nonExisting)
+}
+
+func (i Index) BatchDelete(data []map[string]any) error {
+	dataByShardId := make(map[int][]map[string]any, i.ic.ShardNum)
+	for _, datum := range data {
+		shardId := getShardId(i.ic.ShardNum, fmt.Sprint(datum[i.ic.IdField]))
+		dataByShardId[shardId] = append(dataByShardId[shardId], datum)
+	}
+	eg := errgroup.Group{}
+	for shardId, data := range dataByShardId {
+		eg.Go(func() error {
+			return i.shards[shardId].BatchDelete(data)
+		})
+	}
+	return eg.Wait()
+}
+
+// purge any saved paths
+func (i Index) Purge() error {
+	for id, shard := range i.shards {
+		if err := shard.Purge(); err != nil {
+			slog.Warn("failed purging shard", "id", id, "error", err)
+		}
+	}
+	return nil
 }
 
 // do not use

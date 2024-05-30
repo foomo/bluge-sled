@@ -2,29 +2,26 @@ package filter
 
 import (
 	"slices"
-	"strings"
 
 	"github.com/blugelabs/bluge/analysis"
 )
 
 type SynonymFilter struct {
-	mapping map[string][]string
+	items [][]string
 }
 
-// provide a map of synonyms to a single word
-// eg: "mixer": []string{"hochleistungsmixer", "handmixer", "stabmixer"}
-func NewSynonymFilter(mapping map[string][]string) *SynonymFilter {
-	return &SynonymFilter{mapping}
+// provide a list of string slices as synonyms
+// eg: []string{"mixer", "hochleistungsmixer", "handmixer", "stabmixer"}
+func NewSynonymFilter(items [][]string) *SynonymFilter {
+	return &SynonymFilter{items}
 }
 
 func (f *SynonymFilter) Filter(input analysis.TokenStream) analysis.TokenStream {
 	for _, token := range input {
-		for key, synonyms := range f.mapping {
+		for _, synonyms := range f.items {
 			if slices.Contains(synonyms, string(token.Term)) {
-				terms := strings.Split(key, " ")
-				for i, term := range terms {
-					if i == 0 {
-						token.Term = []byte(term)
+				for _, term := range synonyms {
+					if term == string(token.Term) {
 						continue
 					}
 					newtoken := &analysis.Token{

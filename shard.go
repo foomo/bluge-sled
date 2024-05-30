@@ -4,6 +4,8 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"os"
+	"path/filepath"
 	"slices"
 	"strings"
 
@@ -21,13 +23,17 @@ type shard struct {
 func newShard(id int, ic IndexConfig) (*shard, error) {
 	c := bluge.InMemoryOnlyConfig()
 	if ic.ShardPath != "" {
-		path := fmt.Sprintf("%v-%v", ic.ShardPath, id)
+		path := getShardPath(ic.ShardPath, id)
 		c = bluge.DefaultConfig(path)
 	}
 	if a := ic.AnalyzerConfig.GetAnalyzer("*"); a != nil {
 		c.DefaultSearchAnalyzer = a
 	}
 	return &shard{id, ic, c}, nil
+}
+
+func getShardPath(basePath string, id int) string {
+	return fmt.Sprintf("%v-%v", basePath, id)
 }
 
 func (s shard) BatchInsert(data []map[string]any) error {
@@ -41,8 +47,52 @@ func (s shard) BatchInsert(data []map[string]any) error {
 	}
 	defer w.Close()
 	slog.Debug("data", "fields", strings.Join(fs, ","))
-	// TODO do multiple smaller batches
 	return w.Batch(batch)
+}
+
+func (s shard) Update(id string, datum map[string]any) error {
+	doc, _, err := newDocument(datum, s.ic.IdField, s.ic.StoreFields, s.ic.AnalyzerConfig.GetAnalyzers())
+	if err != nil {
+		return err
+	}
+	w, err := bluge.OpenWriter(s.c)
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+	slog.Debug("update", "id", id, "data", datum)
+	return w.Update(doc.ID(), doc)
+}
+
+func (s shard) BatchDelete(data []map[string]any) error {
+	w, err := bluge.OpenWriter(s.c)
+	if err != nil {
+		return err
+	}
+	defer w.Close()
+	b := bluge.NewBatch()
+	for _, datum := range data {
+		id := fmt.Sprint(datum[s.ic.IdField])
+		b.Delete(bluge.Identifier(id))
+		slog.Debug("batch-delete", "id", id)
+	}
+	return w.Batch(b)
+}
+
+func (s *shard) Purge() error {
+	if s.ic.ShardPath != "" {
+		paths, err := filepath.Glob(s.ic.ShardPath + "*/*")
+		if err != nil {
+			return err
+		}
+		for _, path := range paths {
+			if err := os.RemoveAll(path); err != nil {
+				return err
+			}
+		}
+	}
+	s = nil // after purging make shard unusable
+	return nil
 }
 
 func (s shard) Search(ctx context.Context, query string, sc SearchConfig) (SearchResult, error) {
