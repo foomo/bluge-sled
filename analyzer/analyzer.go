@@ -27,6 +27,7 @@ type TokenFilter string
 
 const (
 	LowercaseFilter TokenFilter = "lowercase"
+	NormalizeFilter TokenFilter = "normalize"
 	CompoundFilter  TokenFilter = "compound"
 	StemFilter      TokenFilter = "stem"
 	StopWordFilter  TokenFilter = "stop_word"
@@ -87,6 +88,11 @@ func (ac Config) GetAnalyzer() *analysis.Analyzer {
 					a.TokenFilters = append(a.TokenFilters, f)
 				}
 			}
+		case NormalizeFilter:
+			f := newNormalizeFilter(ac.Options.Language)
+			if f != nil {
+				a.TokenFilters = append(a.TokenFilters, f)
+			}
 		case StemFilter:
 			f := newStemFilter(ac.Options.Language)
 			if f != nil {
@@ -111,6 +117,15 @@ func (ac Config) GetAnalyzer() *analysis.Analyzer {
 		}
 	}
 	return &a
+}
+
+func newNormalizeFilter(l Language) analysis.TokenFilter {
+	switch l {
+	case German:
+		return de.NormalizeFilter()
+	default:
+		return filter.NewNormalizeUnidecodeFilter()
+	}
 }
 
 func newStopWordFilter(l Language) analysis.TokenFilter {

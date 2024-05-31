@@ -14,6 +14,7 @@ require (
 	github.com/brianvoe/gofakeit/v7 v7.0.2
 	github.com/cespare/xxhash v1.1.0
 	github.com/google/uuid v1.3.1
+	github.com/mozillazg/go-unidecode v0.2.0
 	github.com/pkg/errors v0.9.1
 	github.com/samber/lo v1.39.0
 	github.com/stretchr/testify v1.8.4
