@@ -64,15 +64,14 @@ func (s shard) Update(id string, datum map[string]any) error {
 	return w.Update(doc.ID(), doc)
 }
 
-func (s shard) BatchDelete(data []map[string]any) error {
+func (s shard) BatchDelete(ids []string) error {
 	w, err := bluge.OpenWriter(s.c)
 	if err != nil {
 		return err
 	}
 	defer w.Close()
 	b := bluge.NewBatch()
-	for _, datum := range data {
-		id := fmt.Sprint(datum[s.ic.IdField])
+	for _, id := range ids {
 		b.Delete(bluge.Identifier(id))
 		slog.Debug("batch-delete", "id", id)
 	}

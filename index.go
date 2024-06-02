@@ -68,16 +68,16 @@ func (i Index) Upsert(data []map[string]any) error {
 	return i.BatchInsert(nonExisting)
 }
 
-func (i Index) BatchDelete(data []map[string]any) error {
-	dataByShardId := make(map[int][]map[string]any, i.ic.ShardNum)
-	for _, datum := range data {
-		shardId := getShardId(i.ic.ShardNum, fmt.Sprint(datum[i.ic.IdField]))
-		dataByShardId[shardId] = append(dataByShardId[shardId], datum)
+func (i Index) BatchDelete(ids []string) error {
+	idsByShardId := make(map[int][]string, i.ic.ShardNum)
+	for _, id := range ids {
+		shardId := getShardId(i.ic.ShardNum, id)
+		idsByShardId[shardId] = append(idsByShardId[shardId], id)
 	}
 	eg := errgroup.Group{}
-	for shardId, data := range dataByShardId {
+	for shardId, ids := range idsByShardId {
 		eg.Go(func() error {
-			return i.shards[shardId].BatchDelete(data)
+			return i.shards[shardId].BatchDelete(ids)
 		})
 	}
 	return eg.Wait()
