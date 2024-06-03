@@ -1,7 +1,6 @@
 package analyzer
 
 import (
-	"log/slog"
 	"unicode"
 
 	"github.com/blugelabs/bluge/analysis"
@@ -140,21 +139,14 @@ func newStopWordFilter(l Language) analysis.TokenFilter {
 }
 
 func newStemFilter(l Language) analysis.TokenFilter {
-	var lang string
 	switch l {
 	case German:
-		lang = "german"
+		return de.StemmerFilter()
 	case French:
-		lang = "french"
+		return fr.StemmerFilter()
 	default:
-		lang = "english"
+		return en.StemmerFilter()
 	}
-	f, err := filter.NewSnowballStemmer(lang)
-	if err != nil {
-		slog.Warn("error creating snowball stemmer filter", err)
-		return nil
-	}
-	return f
 }
 
 func newCompoundFilter(l Language) analysis.TokenFilter {
