@@ -31,7 +31,7 @@ func NewIndex(ic IndexConfig) (*Index, error) {
 func (i Index) BatchInsert(data []map[string]any) error {
 	start := time.Now()
 	defer func() {
-		slog.Debug("bulk insert complete", "duration", time.Since(start))
+		slog.Debug("batch insert complete", "len", len(data), "duration", time.Since(start))
 	}()
 	// bluge does not handle document uniqueness
 	uniqueData := lo.UniqBy(data, func(datum map[string]any) string {
@@ -52,12 +52,15 @@ func (i Index) BatchInsert(data []map[string]any) error {
 }
 
 func (i Index) Update(datum map[string]any) error {
-	shardId := getShardId(i.ic.ShardNum, fmt.Sprint(datum[i.ic.IdField]))
-	return i.shards[shardId].Update(fmt.Sprint(datum[i.ic.IdField]), datum)
+	id := fmt.Sprint(datum[i.ic.IdField])
+	slog.Debug("update", "id", id)
+	shardId := getShardId(i.ic.ShardNum, id)
+	return i.shards[shardId].Update(id, datum)
 }
 
 func (i Index) Upsert(data []map[string]any) error {
 	// note: not truly an upsert
+	slog.Debug("upsert", "len", len(data))
 	var nonExisting []map[string]any
 	for _, datum := range data {
 		if err := i.Update(datum); err != nil {
@@ -69,6 +72,10 @@ func (i Index) Upsert(data []map[string]any) error {
 }
 
 func (i Index) BatchDelete(ids []string) error {
+	start := time.Now()
+	defer func() {
+		slog.Debug("batch delete complete", "len", len(ids), "duration", time.Since(start))
+	}()
 	idsByShardId := make(map[int][]string, i.ic.ShardNum)
 	for _, id := range ids {
 		shardId := getShardId(i.ic.ShardNum, id)

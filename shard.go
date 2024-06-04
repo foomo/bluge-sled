@@ -60,7 +60,6 @@ func (s shard) Update(id string, datum map[string]any) error {
 		return err
 	}
 	defer w.Close()
-	slog.Debug("update", "id", id, "data", datum)
 	return w.Update(doc.ID(), doc)
 }
 
@@ -73,7 +72,6 @@ func (s shard) BatchDelete(ids []string) error {
 	b := bluge.NewBatch()
 	for _, id := range ids {
 		b.Delete(bluge.Identifier(id))
-		slog.Debug("batch-delete", "id", id)
 	}
 	return w.Batch(b)
 }
