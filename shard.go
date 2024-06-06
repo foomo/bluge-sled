@@ -88,7 +88,6 @@ func (s *shard) Purge() error {
 			}
 		}
 	}
-	s = nil // after purging make shard unusable
 	return nil
 }
 

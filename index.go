@@ -91,12 +91,13 @@ func (i Index) BatchDelete(ids []string) error {
 }
 
 // purge any saved paths
-func (i Index) Purge() error {
+func (i *Index) Purge() error {
 	for id, shard := range i.shards {
 		if err := shard.Purge(); err != nil {
 			slog.Warn("failed purging shard", "id", id, "error", err)
 		}
 	}
+	i.shards = nil
 	return nil
 }
 
