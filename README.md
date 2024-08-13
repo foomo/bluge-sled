@@ -1,6 +1,14 @@
 
 
-#	# index configuration
+## Example
+1. generate fake data and reload index
+	```go run example/main.go -fake -reload```
+	or on subsequent runs with the same data
+	```go run example/main.go```
+2. search via http://localhost:8080/?q=shirt
+
+## Configuration
+## index
 ```
 type IndexConfig struct {
 	ShardNum    int                           // number of shards to use
@@ -11,7 +19,7 @@ type IndexConfig struct {
 }
 ```
 
-## search configuration
+## search
 ```
 type SearchConfig struct {
 	Limit          int                           // limit number of results returned; 0 will return all
@@ -26,14 +34,14 @@ type SearchConfig struct {
 
 ## Quickstart
 
-### use defaults
+### with defaults
 ```go
 // example with german analyzer config and default index and search config
 ac := analyzer.NewAnalyzerConfig(analyzer.German).WithoutStem().WithLength(3, 15)
 // make sure to use proper field names in index and search config
 indexConfig := sled.NewDefaultIndexConfig("my-index", "id", false, *ac)
 // in this case were using all of the fields to search and returning only "image", "title", "infos", "brand"
-searchConfig := sled.NewDefaultSearchConfig(*ac, nil, []string{"image", "title", "infos", "brand"})
+searchConfig := sled.NewDefaultSearchConfig(*ac,[]string{"image", "title", "infos", "brand"})
 ```
 
 ### initialize the index

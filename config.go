@@ -46,11 +46,17 @@ type SearchConfig struct {
 }
 
 // search config with opinionated defaults
+// note: ImproveFuzziness will impact query speed but improves results
 func NewDefaultSearchConfig(ac analyzer.Config, returnFields []string) SearchConfig {
 	return SearchConfig{
 		Limit: 25,
 		AnalyzerConfig: analyzer.ConfigMap{
 			"*": ac,
+		},
+		QueryConfig: QueryConfig{
+			ImproveFuzziness: map[string]bool{
+				"*": true,
+			},
 		},
 		ReturnFields: returnFields,
 	}

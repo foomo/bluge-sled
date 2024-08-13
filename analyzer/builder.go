@@ -1,6 +1,6 @@
 package analyzer
 
-func NewAnalyzerConfig(l Language) *Config {
+func NewConfig(l Language) *Config {
 	return &Config{
 		Tokenizer: AlphaNumericTokenizer,
 		TokenFilters: []TokenFilter{

@@ -11,13 +11,14 @@ import (
 	"path/filepath"
 
 	sled "github.com/foomo/bluge-sled"
+	"github.com/foomo/bluge-sled/analyzer"
 	"github.com/foomo/bluge-sled/example/item"
 )
 
 func main() {
 	flagDataPath := flag.String("data-src", "data/fake/data.json", "data source path")
 	flagGenerateFake := flag.Bool("fake", false, "generate fake data")
-	flagGenerateAmount := flag.Int("data-items", 100000, "how much data to generate")
+	flagGenerateAmount := flag.Int("fake-amount", 100000, "how much data to generate")
 	flagReload := flag.Bool("reload", false, "reload index")
 	flag.Parse()
 	slog.SetLogLoggerLevel(slog.LevelDebug)
@@ -28,13 +29,10 @@ func main() {
 		}
 	}
 
-	ic := sled.NewDefaultIndexConfig("fake", "id", false)
+	ac := analyzer.NewConfig(analyzer.English).WithTokenizer(analyzer.LetterTokenizer).WithLength(3, 15)
+	ic := sled.NewDefaultIndexConfig("fake", "id", false, *ac)
 	ic.StoreFields = []string{"title", "description", "brand", "color"}
-	sc := sled.SearchConfig{
-		Limit:          25,
-		AnalyzerConfig: ic.AnalyzerConfig,
-		ReturnFields:   []string{"title", "description", "brand", "color"},
-	}
+	sc := sled.NewDefaultSearchConfig(*ac, []string{"title", "description", "brand", "color"})
 
 	bi, err := loadIndex(*flagDataPath, ic, *flagReload)
 	if err != nil {
