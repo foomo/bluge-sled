@@ -102,6 +102,9 @@ func (ac Config) GetAnalyzer() *analysis.Analyzer {
 		case UniqueFilter:
 			a.TokenFilters = append(a.TokenFilters, token.NewUniqueTermFilter())
 		case LengthFilter:
+			if ac.Options.LengthFilterMax == 0 && ac.Options.LengthFilterMin == 0 {
+				continue
+			}
 			if ac.Options.LengthFilterMax-ac.Options.LengthFilterMin < 2 {
 				continue
 			}
