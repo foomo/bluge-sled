@@ -18,6 +18,7 @@ type shard struct {
 	id int
 	ic IndexConfig
 	c  bluge.Config
+	w  *bluge.Writer
 }
 
 func newShard(id int, ic IndexConfig) (*shard, error) {
@@ -29,54 +30,50 @@ func newShard(id int, ic IndexConfig) (*shard, error) {
 	if a := ic.AnalyzerConfig.GetAnalyzer("*"); a != nil {
 		c.DefaultSearchAnalyzer = a
 	}
-	return &shard{id, ic, c}, nil
+	w, err := bluge.OpenWriter(c)
+	if err != nil {
+		return nil, err
+	}
+	return &shard{id: id, ic: ic, c: c, w: w}, nil
 }
 
 func getShardPath(basePath string, id int) string {
 	return fmt.Sprintf("%v-%v", basePath, id)
 }
 
-func (s shard) BatchInsert(data []map[string]any) error {
+func (s *shard) Close() error {
+	return s.w.Close()
+}
+
+func (s *shard) BatchInsert(data []map[string]any) error {
 	batch, fs, err := newBatchInsert(s.id, data, s.ic.IdField, s.ic.StoreFields, s.ic.AnalyzerConfig.GetAnalyzers())
 	if err != nil {
 		return err
 	}
-	w, err := bluge.OpenWriter(s.c)
-	if err != nil {
-		return err
-	}
-	defer w.Close()
 	slog.Debug("data", "fields", strings.Join(fs, ","))
-	return w.Batch(batch)
+	return s.w.Batch(batch)
 }
 
-func (s shard) Update(id string, datum map[string]any) error {
+func (s *shard) Update(id string, datum map[string]any) error {
 	doc, _, err := newDocument(datum, s.ic.IdField, s.ic.StoreFields, s.ic.AnalyzerConfig.GetAnalyzers())
 	if err != nil {
 		return err
 	}
-	w, err := bluge.OpenWriter(s.c)
-	if err != nil {
-		return err
-	}
-	defer w.Close()
-	return w.Update(doc.ID(), doc)
+	return s.w.Update(doc.ID(), doc)
 }
 
-func (s shard) BatchDelete(ids []string) error {
-	w, err := bluge.OpenWriter(s.c)
-	if err != nil {
-		return err
-	}
-	defer w.Close()
+func (s *shard) BatchDelete(ids []string) error {
 	b := bluge.NewBatch()
 	for _, id := range ids {
 		b.Delete(bluge.Identifier(id))
 	}
-	return w.Batch(b)
+	return s.w.Batch(b)
 }
 
 func (s *shard) Purge() error {
+	if err := s.Close(); err != nil {
+		return err
+	}
 	if s.ic.ShardPath != "" {
 		paths, err := filepath.Glob(s.ic.ShardPath + "*/*")
 		if err != nil {
@@ -91,9 +88,9 @@ func (s *shard) Purge() error {
 	return nil
 }
 
-func (s shard) Search(ctx context.Context, query string, sc SearchConfig) (SearchResult, error) {
+func (s *shard) Search(ctx context.Context, query string, sc SearchConfig) (SearchResult, error) {
 	var sr SearchResult
-	r, err := bluge.OpenReader(s.c)
+	r, err := s.w.Reader()
 	if err != nil {
 		return sr, err
 	}
