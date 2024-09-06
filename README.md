@@ -37,7 +37,7 @@ type SearchConfig struct {
 ### with defaults
 ```go
 // example with german analyzer config and default index and search config
-ac := analyzer.NewAnalyzerConfig(analyzer.German).WithoutStem().WithLength(3, 15)
+ac := analyzer.NewConfig(analyzer.German).WithoutStem().WithLength(3, 15)
 // make sure to use proper field names in index and search config
 indexConfig := sled.NewDefaultIndexConfig("my-index", "id", false, *ac)
 // in this case were using all of the fields to search and returning only "image", "title", "infos", "brand"
@@ -59,7 +59,7 @@ var data []map[string]interface{}
 if err := json.NewDecoder(f).Decode(&data); err != nil {
   return nil, err
 }
-if err := index.BulkInsert(data); err != nil {
+if err := index.BatchInsert(data); err != nil {
   return nil, err
 }
 ```
