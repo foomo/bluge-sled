@@ -88,8 +88,9 @@ func (s *shard) Purge() error {
 	return nil
 }
 
-func (s *shard) Search(ctx context.Context, query string, sc SearchConfig) (SearchResult, error) {
+func (s *shard) Search(ctx context.Context, query string, sc *SearchConfig) (SearchResult, error) {
 	var sr SearchResult
+	// TODO consider using sync.Pool for these
 	r, err := s.w.Reader()
 	if err != nil {
 		return sr, err
@@ -98,9 +99,9 @@ func (s *shard) Search(ctx context.Context, query string, sc SearchConfig) (Sear
 
 	var q bluge.Query
 	if len(sc.SearchFields) > 0 {
-		q = newMultiFieldQuery(query, sc.SearchFields, sc.QueryConfig, s.ic.AnalyzerConfig.GetAnalyzers())
+		q = newMultiFieldQuery(query, sc.SearchFields, sc.QueryConfig, sc.AnalyzerConfig.GetAnalyzers())
 	} else {
-		q = newAllFieldsQuery(query, sc.QueryConfig, s.ic.AnalyzerConfig.GetAnalyzers())
+		q = newAllFieldsQuery(query, sc.QueryConfig, sc.AnalyzerConfig.GetAnalyzers())
 	}
 	var req bluge.SearchRequest
 	req = bluge.NewAllMatches(q).WithStandardAggregations()
@@ -123,7 +124,7 @@ func (s *shard) Search(ctx context.Context, query string, sc SearchConfig) (Sear
 	return sr, err
 }
 
-func processMatches(dmi search.DocumentMatchIterator, sc SearchConfig) (hits []Hit, err error) {
+func processMatches(dmi search.DocumentMatchIterator, sc *SearchConfig) (hits []Hit, err error) {
 	for {
 		match, err := dmi.Next()
 		if err != nil {

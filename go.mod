@@ -9,7 +9,7 @@ replace (
 )
 
 require (
-	github.com/a-h/templ v0.2.590
+	github.com/a-h/templ v0.2.747
 	github.com/blugelabs/bluge v0.1.9
 	github.com/brianvoe/gofakeit/v7 v7.0.2
 	github.com/cespare/xxhash v1.1.0
@@ -42,7 +42,7 @@ require (
 	github.com/rogpeppe/go-internal v1.12.0 // indirect
 	github.com/spaolacci/murmur3 v1.1.0 // indirect
 	golang.org/x/exp v0.0.0-20240222234643-814bf88cf225 // indirect
-	golang.org/x/sys v0.16.0 // indirect
+	golang.org/x/sys v0.21.0 // indirect
 	golang.org/x/text v0.14.0 // indirect
 	gopkg.in/check.v1 v1.0.0-20201130134442-10cb98267c6c // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect

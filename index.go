@@ -101,59 +101,11 @@ func (i *Index) Purge() error {
 	return nil
 }
 
-// do not use
-func (i Index) search_(ctx context.Context, query string, sc SearchConfig) (SearchResult, error) {
+func (i Index) Search(ctx context.Context, query string, sc *SearchConfig) (combined SearchResult, err error) {
+	if sc == nil {
+		return combined, fmt.Errorf("you must provide a valid SearchConfig")
+	}
 	start := time.Now()
-	var combined SearchResult
-	eg := errgroup.Group{}
-	workers := 20
-	sc.Limit = 1000
-	resultChan := make(chan SearchResult, workers)
-	for wi := range workers {
-		from := wi * sc.Limit
-		eg.Go(func() error {
-			sc.From = from
-			// do shard searches
-			sr, err := i.shards[0].Search(ctx, query, sc)
-			if err != nil {
-				return err
-			}
-			resultChan <- sr
-			return nil
-		})
-	}
-	if err := eg.Wait(); err != nil {
-		return combined, err
-	}
-	close(resultChan)
-	// combine results
-	for sr := range resultChan {
-		// slog.Debug(query, "hits", len(sr.Hits))
-		combined.Hits = append(combined.Hits, sr.Hits...)
-		combined.HitNumber += sr.HitNumber
-	}
-	// sort combined hits by score
-	slices.SortFunc(combined.Hits, func(a Hit, b Hit) int {
-		if a.Score < b.Score {
-			return 1
-		}
-		if a.Score > b.Score {
-			return -1
-		}
-		return 0
-	})
-	if len(combined.Hits) > 0 {
-		combined.MaxScore = combined.Hits[0].Score
-	}
-	combined.Query = query
-	combined.Duration = time.Since(start)
-	slog.Debug("index", "query", query, "hits", combined.HitNumber, "max-score", combined.MaxScore, "duration", combined.Duration)
-	return combined, nil
-}
-
-func (i Index) Search(ctx context.Context, query string, sc SearchConfig) (SearchResult, error) {
-	start := time.Now()
-	var combined SearchResult
 	resultChan := make(chan SearchResult, i.ic.ShardNum)
 	eg := errgroup.Group{}
 	for _, shard := range i.shards {

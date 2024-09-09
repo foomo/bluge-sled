@@ -41,7 +41,7 @@ func main() {
 
 	http.HandleFunc("/", func(w http.ResponseWriter, r *http.Request) {
 		q := r.URL.Query().Get("q")
-		res, err := bi.Search(r.Context(), q, sc)
+		res, err := bi.Search(r.Context(), q, &sc)
 		if err != nil {
 			slog.Error(err.Error())
 			return
