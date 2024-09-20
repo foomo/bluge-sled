@@ -118,13 +118,14 @@ func (s *shard) Search(ctx context.Context, query string, sc *SearchConfig) (Sea
 	}
 	sr.Hits = hits
 	sr.Query = query
-	sr.HitNumber = uint64(len(sr.Hits))
+	sr.HitNumber = uint64(dmi.Aggregations().Metric("count"))
 	sr.MaxScore = dmi.Aggregations().Metric("max_score")
 	sr.Duration = dmi.Aggregations().Duration()
 	return sr, err
 }
 
 func processMatches(dmi search.DocumentMatchIterator, sc *SearchConfig) (hits []Hit, err error) {
+	maxScore := dmi.Aggregations().Metric("max_score")
 	for {
 		match, err := dmi.Next()
 		if err != nil {
@@ -135,6 +136,10 @@ func processMatches(dmi search.DocumentMatchIterator, sc *SearchConfig) (hits []
 		}
 		if sc.ScoreThreshold > 0 && sc.ScoreThreshold > match.Score {
 			// exclude results lower than configured threshold
+			break
+		}
+		if sc.MaxScorePercentThreshold > 0 && maxScore*(sc.MaxScorePercentThreshold/100) > match.Score {
+			// exclude results lower than configured percent threshold
 			break
 		}
 		var hit Hit

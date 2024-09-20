@@ -36,13 +36,14 @@ func NewDefaultIndexConfig(name, idField string, inMemory bool, ac analyzer.Conf
 }
 
 type SearchConfig struct {
-	Limit          int                `yaml:"limit,omitempty" json:"limit,omitempty"`                     // limit number of results returned; 0 will return all
-	From           int                `yaml:"from,omitempty" json:"from,omitempty"`                       // offset for paging results (to be used with limit)
-	SearchFields   []string           `yaml:"search_fields,omitempty" json:"search_fields,omitempty"`     // fields to search the query; if not set, search composite "_all"
-	ReturnFields   []string           `yaml:"return_fields,omitempty" json:"return_fields,omitempty"`     // stored fields to return when getting search results; see IndexConfig.StoreFields to manage fields youre storing
-	QueryConfig    QueryConfig        `yaml:"query_config,omitempty" json:"query_config,omitempty"`       // this will have no effect if SearchConfig.SearchFields are not set
-	ScoreThreshold float64            `yaml:"score_threshold,omitempty" json:"score_threshold,omitempty"` // filter results below specified score. if not set, includes all
-	AnalyzerConfig analyzer.ConfigMap `yaml:"analyzer_config,omitempty" json:"analyzer_config,omitempty"` // analyzer config to use per field. use "*" for any field
+	Limit                    int                `yaml:"limit,omitempty" json:"limit,omitempty"`                                             // limit number of results returned; 0 will return all
+	From                     int                `yaml:"from,omitempty" json:"from,omitempty"`                                               // offset for paging results (to be used with limit)
+	SearchFields             []string           `yaml:"search_fields,omitempty" json:"search_fields,omitempty"`                             // fields to search the query; if not set, search composite "_all"
+	ReturnFields             []string           `yaml:"return_fields,omitempty" json:"return_fields,omitempty"`                             // stored fields to return when getting search results; see IndexConfig.StoreFields to manage fields youre storing
+	QueryConfig              QueryConfig        `yaml:"query_config,omitempty" json:"query_config,omitempty"`                               // this will have no effect if SearchConfig.SearchFields are not set
+	ScoreThreshold           float64            `yaml:"score_threshold,omitempty" json:"score_threshold,omitempty"`                         // filter results below specified score. if not set, includes all
+	MaxScorePercentThreshold float64            `yaml:"max_score_percent_threshold,omitempty" json:"max_score_percent_threshold,omitempty"` // filter results below specified percent of max score.
+	AnalyzerConfig           analyzer.ConfigMap `yaml:"analyzer_config,omitempty" json:"analyzer_config,omitempty"`                         // analyzer config to use per field. use "*" for any field
 }
 
 // search config with opinionated defaults
